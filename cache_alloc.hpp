@@ -30,7 +30,7 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
         template <class U> 
             struct rebind 
             {
-                typedef cache_alloc<U, S> other;
+                typedef cache_alloc<U, S, A> other;
             };
             
         T * allocate(size_t size) noexcept __attribute__((always_inline))
