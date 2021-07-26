@@ -23,11 +23,11 @@ using namespace std;
 template <template <typename...> class C, size_t L>
     auto test_new_delete1()
     {
+        C<int, allocator<int>> c;
+
         auto start = chrono::steady_clock::now();
         
         {        
-            C<int, allocator<int>> c;
-
             for (size_t i = 0; i < L; ++ i)
             {
                 c.emplace_back(i);
@@ -42,11 +42,11 @@ template <template <typename...> class C, size_t L>
 template <template <typename...> class C, size_t S, size_t L>
     auto test_cache_alloc1()
     {
+        C<int, cache_alloc<int, S>> c;
+            
         auto start = chrono::steady_clock::now();
         
         {
-            C<int, cache_alloc<int, S>> c;
-            
             for (size_t i = 0; i < L; ++ i)
             {
                 c.emplace_back(i);
@@ -61,11 +61,11 @@ template <template <typename...> class C, size_t S, size_t L>
 template <template <typename...> class C, size_t L>
     auto test_new_delete2()
     {
+        C<int, allocator<int>> c;
+
         auto start = chrono::steady_clock::now();
         
         {        
-            C<int, allocator<int>> c;
-
             for (size_t i = 0; i < L; ++ i)
             {
                 c.emplace_back(i);
@@ -85,11 +85,11 @@ template <template <typename...> class C, size_t L>
 template <template <typename...> class C, size_t S, size_t L>
     auto test_cache_alloc2()
     {
+        C<int, cache_alloc<int, S>> c;
+            
         auto start = chrono::steady_clock::now();
         
         {
-            C<int, cache_alloc<int, S>> c;
-            
             for (size_t i = 0; i < L; ++ i)
             {
                 c.emplace_back(i);
