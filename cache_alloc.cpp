@@ -108,32 +108,32 @@ template <template <typename...> class C, size_t S, size_t L>
 
 int main()
 {
-    size_t const LOOP_SIZE = 1024 * 100;
+    size_t const LOOP_SIZE = 1024 * 10;
         
     {
-        cout << "emplace_back:" << endl;
+        cout << "emplace_back:    " << endl;
         
         auto s = test_new_delete1<list, LOOP_SIZE>();
     
-        cout << "cache_alloc of 1 K: " << s / test_cache_alloc1<list, 1, LOOP_SIZE>() << "x" << endl;
-        cout << "cache_alloc of 10 K: " << s / test_cache_alloc1<list, 10, LOOP_SIZE>() << "x" << endl;
-        cout << "cache_alloc of 100 K: " << s / test_cache_alloc1<list, 100, LOOP_SIZE>() << "x" << endl;
-        cout << "cache_alloc of 1000 K: " << s / test_cache_alloc1<list, 1000, LOOP_SIZE>() << "x" << endl;
-        cout << "cache_alloc of 10000 K: " << s / test_cache_alloc1<list, 10000, LOOP_SIZE>() << "x" << endl;
-        cout << "cache_alloc of 100000 K: " << s / test_cache_alloc1<list, 100000, LOOP_SIZE>() << "x" << endl;
+        cout << "cache_alloc of 1 K: " << s / test_cache_alloc1<list, 1, LOOP_SIZE>() << "x    " << endl;
+        cout << "cache_alloc of 10 K: " << s / test_cache_alloc1<list, 10, LOOP_SIZE>() << "x    " << endl;
+        cout << "cache_alloc of 100 K: " << s / test_cache_alloc1<list, 100, LOOP_SIZE>() << "x    " << endl;
+        cout << "cache_alloc of 1000 K: " << s / test_cache_alloc1<list, 1000, LOOP_SIZE>() << "x    " << endl;
+        cout << "cache_alloc of 10000 K: " << s / test_cache_alloc1<list, 10000, LOOP_SIZE>() << "x    " << endl;
+        cout << "cache_alloc of 100000 K: " << s / test_cache_alloc1<list, 100000, LOOP_SIZE>() << "x    " << endl;
     }
 
     {
-        cout << "emplace_back / pop_back:" << endl;
+        cout << "emplace_back / pop_back:    " << endl;
         
         auto s = test_new_delete2<list, LOOP_SIZE>();
     
-        cout << "cache_alloc of 1 K: " << s / test_cache_alloc2<list, 1, LOOP_SIZE>() << "x" << endl;
-        cout << "cache_alloc of 10 K: " << s / test_cache_alloc2<list, 10, LOOP_SIZE>() << "x" << endl;
-        cout << "cache_alloc of 100 K: " << s / test_cache_alloc2<list, 100, LOOP_SIZE>() << "x" << endl;
-        cout << "cache_alloc of 1000 K: " << s / test_cache_alloc2<list, 1000, LOOP_SIZE>() << "x" << endl;
-        cout << "cache_alloc of 10000 K: " << s / test_cache_alloc2<list, 10000, LOOP_SIZE>() << "x" << endl;
-        cout << "cache_alloc of 100000 K: " << s / test_cache_alloc2<list, 100000, LOOP_SIZE>() << "x" << endl;
+        cout << "cache_alloc of 1 K: " << s / test_cache_alloc2<list, 1, LOOP_SIZE>() << "x    " << endl;
+        cout << "cache_alloc of 10 K: " << s / test_cache_alloc2<list, 10, LOOP_SIZE>() << "x    " << endl;
+        cout << "cache_alloc of 100 K: " << s / test_cache_alloc2<list, 100, LOOP_SIZE>() << "x    " << endl;
+        cout << "cache_alloc of 1000 K: " << s / test_cache_alloc2<list, 1000, LOOP_SIZE>() << "x    " << endl;
+        cout << "cache_alloc of 10000 K: " << s / test_cache_alloc2<list, 10000, LOOP_SIZE>() << "x    " << endl;
+        cout << "cache_alloc of 100000 K: " << s / test_cache_alloc2<list, 100000, LOOP_SIZE>() << "x    " << endl;
     }
             
     return 0;
