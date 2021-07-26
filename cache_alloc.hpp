@@ -16,6 +16,11 @@
 #include <list>
 #include "intrusive_list.hpp"
 
+#if BOOST_BENCHMARK
+#include <chrono>
+#include <iostream>
+#endif
+
 
 template <typename T, size_t S, template <typename...> class A = std::allocator> // type, cache size based on speed of pre-made benchmark and allocator
     struct cache_alloc
@@ -39,6 +44,10 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
             
             if (! pool.elements.empty())
             {
+#ifdef BOOST_BENCHMARK
+                benchmark_t element(stats.element);
+#endif
+                
                 // reuse node
                 boost::smart_ptr::detail::intrusive_list_node * const i = pool.elements.begin();
                 element_t * const p = boost::smart_ptr::detail::classof(& element_t::node, i);
@@ -51,34 +60,95 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
             
             if (pcache->size >= S * 1024)
             {
+#ifdef BOOST_BENCHMARK
+                benchmark_t cache(stats.cache);
+#endif
+                
                 // add a buffer
                 pool.caches.emplace_back();
                 
                 pcache = -- pool.caches.end();
             }
             
-            element_t * const p = & pcache->data[pcache->size];
-            p->pcache = pcache;
-            pcache->size += size;
+            {
+#ifdef BOOST_BENCHMARK
+                benchmark_t element(stats.element);
+#endif
+                
+                element_t * const p = & pcache->data[pcache->size];
+                p->pcache = pcache;
+                pcache->size += size;
             
-            return reinterpret_cast<T *>(& p->element);
+                return reinterpret_cast<T *>(& p->element);
+            }
         }
         
         void deallocate(T * q, size_t size) noexcept __attribute__((always_inline))
         {
             element_t * const p = boost::smart_ptr::detail::classof(& element_t::element, reinterpret_cast<typename std::aligned_storage<sizeof(T), alignof(T)>::type *>(q));
             
-            p->pcache->size -= size;
+            {
+#ifdef BOOST_BENCHMARK
+                benchmark_t element(stats.element);
+#endif
+                        
+                p->pcache->size -= size;
 
-            // enlist this node for eventual reuse
-            pool.elements.push_back(& p->node);
+                // enlist this node for eventual reuse
+                pool.elements.push_back(& p->node);
+            }
             
             if (pool.caches.size() > 1 && p->pcache->size == 0)
+            {
+#ifdef BOOST_BENCHMARK
+                benchmark_t cache(stats.cache);
+#endif
+                
                 // remove a buffer
                 pool.caches.erase(p->pcache);
+            }
         }
+        
+#ifdef BOOST_BENCHMARK
+        ~cache_alloc()
+        {
+            if ((stats.element.time.count() + stats.cache.time.count()) / (stats.element.time.count()) > 1.0)
+                std::cerr << "(buffer non-optimal) ";
+        }
+#endif
 
     private:
+#ifdef BOOST_BENCHMARK
+        struct stats_t
+        {
+            struct unit_t
+            {
+                size_t count{};
+                std::chrono::duration<double> time;
+            } element, cache;
+        } stats;
+
+        struct benchmark_t
+        {
+            std::chrono::time_point<std::chrono::steady_clock> start;
+            typename stats_t::unit_t & unit;
+            
+            benchmark_t(typename stats_t::unit_t & unit) 
+            : start(std::chrono::steady_clock::now())
+            , unit(unit)
+            {
+                ++ unit.count;
+            }
+            
+            ~benchmark_t()
+            {
+                std::chrono::time_point<std::chrono::steady_clock> end = std::chrono::steady_clock::now();
+                
+                unit.time += end - start;
+            }
+        };
+#endif
+        
         struct cache_t;
         
         struct element_t
