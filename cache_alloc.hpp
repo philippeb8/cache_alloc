@@ -17,18 +17,17 @@
 #include "intrusive_list.hpp"
 
 #if BOOST_BENCHMARK
-#include <chrono>
 #include <iostream>
 
 #ifdef _WIN32
 #include <intrin.h>
 
-uint64_t rdtsc()
+inline uint64_t rdtsc()
 {
     return __rdtsc();
 }
 #else
-uint64_t rdtsc()
+inline uint64_t rdtsc()
 {
     unsigned int lo, hi;
     __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
