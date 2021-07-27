@@ -19,6 +19,22 @@
 #if BOOST_BENCHMARK
 #include <chrono>
 #include <iostream>
+
+#ifdef _WIN32
+#include <intrin.h>
+
+uint64_t rdtsc()
+{
+    return __rdtsc();
+}
+#else
+uint64_t rdtsc()
+{
+    unsigned int lo, hi;
+    __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+    return ((uint64_t)hi << 32) | lo;
+}
+#endif
 #endif
 
 
@@ -112,7 +128,7 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
 #ifdef BOOST_BENCHMARK
         ~cache_alloc()
         {
-            if ((stats.element.time.count() + stats.cache.time.count()) / (stats.element.time.count()) > 1.0)
+            if (double(stats.element.time + stats.cache.time) / double(stats.element.time) > 1.0)
                 std::cerr << "(buffer non-optimal) ";
         }
 #endif
@@ -124,17 +140,17 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
             struct unit_t
             {
                 size_t count{};
-                std::chrono::duration<double> time;
+                uint64_t time{};
             } element, cache;
         } stats;
 
         struct benchmark_t
         {
-            std::chrono::time_point<std::chrono::steady_clock> start;
+            uint64_t start;
             typename stats_t::unit_t & unit;
             
             benchmark_t(typename stats_t::unit_t & unit) 
-            : start(std::chrono::steady_clock::now())
+            : start(rdtsc())
             , unit(unit)
             {
                 ++ unit.count;
@@ -142,7 +158,7 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
             
             ~benchmark_t()
             {
-                std::chrono::time_point<std::chrono::steady_clock> end = std::chrono::steady_clock::now();
+                uint64_t end = rdtsc();
                 
                 unit.time += end - start;
             }
