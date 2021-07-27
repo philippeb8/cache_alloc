@@ -138,7 +138,7 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
         {
             struct unit_t
             {
-                size_t count{};
+                //size_t count{};
                 uint64_t time{};
             } element, cache;
         } stats;
@@ -152,7 +152,7 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
             : start(rdtsc())
             , unit(unit)
             {
-                ++ unit.count;
+                //++ unit.count;
             }
             
             ~benchmark_t()
