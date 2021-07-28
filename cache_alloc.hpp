@@ -14,6 +14,7 @@
 
 #include <list>
 #include <array>
+#include <iostream>
 #include "intrusive_list.hpp"
 
 #if BOOST_BENCHMARK
@@ -64,23 +65,23 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
         {
             typename fornux::list<cache_t, A<cache_t>>::iterator pcache = -- pool.caches.end();
             
-            if (! pool.elements.empty())
+            if (! pool.dead_elements.empty())
             {
 #ifdef BOOST_BENCHMARK
                 benchmark_t element(stats.element);
 #endif
                 
                 // reuse node
-                boost::smart_ptr::detail::intrusive_list_node * const i = pool.elements.begin();
+                boost::smart_ptr::detail::intrusive_list_node * const i = pool.dead_elements.begin();
                 element_t * const p = boost::smart_ptr::detail::classof(& element_t::node, i);
                     
                 i->erase();
-                p->pcache->size += size;
+                //p->pcache->live_elements.push_back(& p->node);
                     
                 return reinterpret_cast<T *>(& p->element);
             }
             
-            if (pcache->size >= S * 1024)
+            if (pcache->live_elements_size >= S * 1024)
             {
 #ifdef BOOST_BENCHMARK
                 benchmark_t cache(stats.cache);
@@ -97,9 +98,10 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
                 benchmark_t element(stats.element);
 #endif
                 
-                element_t * const p = & pcache->data[pcache->size];
+                element_t * const p = & reinterpret_cast<data_t &>(pcache->data)[pcache->live_elements_size];
                 p->pcache = pcache;
-                pcache->size += size;
+                p->pcache->live_elements_size += size;
+                //p->pcache->live_elements.push_back(& p->node);
             
                 return reinterpret_cast<T *>(& p->element);
             }
@@ -114,13 +116,14 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
                 benchmark_t element(stats.element);
 #endif
                         
-                p->pcache->size -= size;
+                p->pcache->live_elements_size -= size;
 
                 // enlist this node for eventual reuse
-                pool.elements.push_back(& p->node);
+                p->node.erase();
+                pool.dead_elements.push_back(& p->node);
             }
             
-            if (pool.caches.size() > 1 && p->pcache->size == 0)
+            if (pool.caches.size() > 1 && p->pcache->live_elements_size == 0)
             {
 #ifdef BOOST_BENCHMARK
                 benchmark_t cache(stats.cache);
@@ -184,14 +187,37 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
         
         struct cache_t
         {
-            size_t size{};
-            data_t data;
+            bool skip = false;
+            size_t live_elements_size{};
+            //boost::smart_ptr::detail::intrusive_list live_elements{};
+            typename std::aligned_storage<sizeof(data_t), alignof(data_t)>::type data;
+
+            cache_t()
+            {
+                new (& data) data_t();
+            }
+            
+            ~cache_t()
+            {
+                if (! skip)
+                    reinterpret_cast<data_t &>(data).~data_t();
+            }
         };
         
         struct pool_t
         {
-            boost::smart_ptr::detail::intrusive_list elements{};
+            boost::smart_ptr::detail::intrusive_list dead_elements{};
             fornux::list<cache_t, A<cache_t>> caches{1};
+            
+            pool_t()
+            {
+                caches.begin()->skip = true;
+            }
+            
+            ~pool_t()
+            {
+                dead_elements.clear();
+            }
         };
         
         pool_t pool; // general pool

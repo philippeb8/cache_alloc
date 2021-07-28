@@ -70,6 +70,7 @@ class intrusive_list_base
 protected:
     intrusive_list_node impl;
 
+public:
     void clear()
     {
         impl.next = & impl;
@@ -86,7 +87,7 @@ protected:
     together without the need of any memory allocation.
 */
 
-class intrusive_list : protected intrusive_list_base
+class intrusive_list : public intrusive_list_base
 {
     typedef intrusive_list_base base;
 
