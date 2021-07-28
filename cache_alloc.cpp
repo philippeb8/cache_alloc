@@ -13,19 +13,18 @@
 
 #include <iostream>
 #include <chrono>
-#include <stack>
-#include <queue>
+#include <list>
+
+#define BOOST_POOL_NO_MT
+#include <boost/pool/pool_alloc.hpp>
 
 
-using namespace std;
-
-
-template <template <typename...> class C, size_t L>
-    auto test_new_delete1()
+template <template <typename...> class C, typename A, size_t L>
+    auto test1()
     {
-        C<int, allocator<int>> c;
+        C<int, A> c;
 
-        auto start = chrono::steady_clock::now();
+        auto start = std::chrono::steady_clock::now();
         
         {        
             for (size_t i = 0; i < L; ++ i)
@@ -34,36 +33,17 @@ template <template <typename...> class C, size_t L>
             }
         }
         
-       auto end = chrono::steady_clock::now();
+       auto end = std::chrono::steady_clock::now();
 
-       return chrono::duration<double>{end - start};
+       return std::chrono::duration<double>{end - start};
     }
 
-template <template <typename...> class C, size_t S, size_t L>
-    auto test_cache_alloc1()
+template <template <typename...> class C, typename A, size_t L>
+    auto test2()
     {
-        C<int, cache_alloc<int, S>> c;
-            
-        auto start = chrono::steady_clock::now();
-        
-        {
-            for (size_t i = 0; i < L; ++ i)
-            {
-                c.emplace_back(i);
-            }
-        }
-        
-        auto end = chrono::steady_clock::now();
+        C<int, A> c;
 
-        return chrono::duration<double>{end - start};
-    }
-
-template <template <typename...> class C, size_t L>
-    auto test_new_delete2()
-    {
-        C<int, allocator<int>> c;
-
-        auto start = chrono::steady_clock::now();
+        auto start = std::chrono::steady_clock::now();
         
         {        
             for (size_t i = 0; i < L; ++ i)
@@ -77,19 +57,19 @@ template <template <typename...> class C, size_t L>
             }
         }
         
-       auto end = chrono::steady_clock::now();
+       auto end = std::chrono::steady_clock::now();
 
-       return chrono::duration<double>{end - start};
+       return std::chrono::duration<double>{end - start};
     }
 
-template <template <typename...> class C, size_t S, size_t L>
-    auto test_cache_alloc2()
+template <template <typename...> class C, typename A, size_t L>
+    auto test3()
     {
-        C<int, cache_alloc<int, S>> c;
-            
-        auto start = chrono::steady_clock::now();
+        auto start = std::chrono::steady_clock::now();
         
-        {
+        {        
+            C<int, A> c;
+
             for (size_t i = 0; i < L; ++ i)
             {
                 c.emplace_back(i);
@@ -101,41 +81,90 @@ template <template <typename...> class C, size_t S, size_t L>
             }
         }
         
-        auto end = chrono::steady_clock::now();
+       auto end = std::chrono::steady_clock::now();
 
-        return chrono::duration<double>{end - start};
+       return std::chrono::duration<double>{end - start};
+    }
+
+template <template <typename...> class C>
+    void test()
+    {
+        using namespace std;
+        using namespace boost;
+        using namespace fornux;
+        
+        size_t const LOOP_SIZE = 1024 * 10;
+        
+        {
+            cout << "cache_alloc speedup factor (emplace_back):    " << endl;
+            
+            auto s = test1<C, allocator<int>, LOOP_SIZE>();
+        
+            cout << "cache_alloc of 1 K: " << s / test1<C, cache_alloc<int, 1>, LOOP_SIZE>() << "x    " << endl;
+            cout << "cache_alloc of 10 K: " << s / test1<C, cache_alloc<int, 10>, LOOP_SIZE>() << "x    " << endl;
+            cout << "cache_alloc of 100 K: " << s / test1<C, cache_alloc<int, 100>, LOOP_SIZE>() << "x    " << endl;
+            cout << "cache_alloc of 1000 K: " << s / test1<C, cache_alloc<int, 1000>, LOOP_SIZE>() << "x    " << endl;
+            cout << "cache_alloc of 10000 K: " << s / test1<C, cache_alloc<int, 10000>, LOOP_SIZE>() << "x    " << endl;
+            cout << "cache_alloc of 100000 K: " << s / test1<C, cache_alloc<int, 100000>, LOOP_SIZE>() << "x    " << endl;
+        }
+    
+        {
+            cout << "cache_alloc speedup factor (emplace_back / pop_back):    " << endl;
+            
+            auto s = test2<C, allocator<int>, LOOP_SIZE>();
+        
+            cout << "cache_alloc of 1 K: " << s / test2<C, cache_alloc<int, 1>, LOOP_SIZE>() << "x    " << endl;
+            cout << "cache_alloc of 10 K: " << s / test2<C, cache_alloc<int, 10>, LOOP_SIZE>() << "x    " << endl;
+            cout << "cache_alloc of 100 K: " << s / test2<C, cache_alloc<int, 100>, LOOP_SIZE>() << "x    " << endl;
+            cout << "cache_alloc of 1000 K: " << s / test2<C, cache_alloc<int, 1000>, LOOP_SIZE>() << "x    " << endl;
+            cout << "cache_alloc of 10000 K: " << s / test2<C, cache_alloc<int, 10000>, LOOP_SIZE>() << "x    " << endl;
+            cout << "cache_alloc of 100000 K: " << s / test2<C, cache_alloc<int, 100000>, LOOP_SIZE>() << "x    " << endl;
+        }
+    
+        {
+            cout << "cache_alloc speedup factor (emplace_back / pop_back / destroy):    " << endl;
+            
+            auto s = test2<C, allocator<int>, LOOP_SIZE>();
+        
+            cout << "cache_alloc of 1 K: " << s / test3<C, cache_alloc<int, 1>, LOOP_SIZE>() << "x    " << endl;
+            cout << "cache_alloc of 10 K: " << s / test3<C, cache_alloc<int, 10>, LOOP_SIZE>() << "x    " << endl;
+            cout << "cache_alloc of 100 K: " << s / test3<C, cache_alloc<int, 100>, LOOP_SIZE>() << "x    " << endl;
+            cout << "cache_alloc of 1000 K: " << s / test3<C, cache_alloc<int, 1000>, LOOP_SIZE>() << "x    " << endl;
+            cout << "cache_alloc of 10000 K: " << s / test3<C, cache_alloc<int, 10000>, LOOP_SIZE>() << "x    " << endl;
+            cout << "cache_alloc of 100000 K: " << s / test3<C, cache_alloc<int, 100000>, LOOP_SIZE>() << "x    " << endl;
+        }
+    
+        typedef fast_pool_allocator<int, default_user_allocator_new_delete, details::pool::default_mutex, 64, 128> boost_fast_allocator;
+        
+        {
+            cout << "boost_fast_allocator speedup factor (emplace_back):    " << endl;
+            
+            auto s = test1<C, allocator<int>, LOOP_SIZE>();
+        
+            cout << "boost_fast_allocator: " << s / test1<C, boost_fast_allocator, LOOP_SIZE>() << "x    " << endl;
+        }
+    
+        {
+            cout << "boost_fast_allocator speedup factor (emplace_back / pop_back):    " << endl;
+            
+            auto s = test2<C, allocator<int>, LOOP_SIZE>();
+        
+            cout << "boost_fast_allocator: " << s / test2<C, boost_fast_allocator, LOOP_SIZE>() << "x    " << endl;
+        }
+
+        {
+            cout << "boost_fast_allocator speedup factor (emplace_back / pop_back / destroy):    " << endl;
+            
+            auto s = test2<C, allocator<int>, LOOP_SIZE>();
+        
+            cout << "boost_fast_allocator: " << s / test3<C, boost_fast_allocator, LOOP_SIZE>() << "x    " << endl;
+        }
     }
 
 int main()
 {
-    size_t const LOOP_SIZE = 1024 * 10;
-        
-    {
-        cout << "emplace_back:    " << endl;
-        
-        auto s = test_new_delete1<list, LOOP_SIZE>();
+    test<std::list>();
     
-        cout << "cache_alloc of 1 K: " << s / test_cache_alloc1<list, 1, LOOP_SIZE>() << "x    " << endl;
-        cout << "cache_alloc of 10 K: " << s / test_cache_alloc1<list, 10, LOOP_SIZE>() << "x    " << endl;
-        cout << "cache_alloc of 100 K: " << s / test_cache_alloc1<list, 100, LOOP_SIZE>() << "x    " << endl;
-        cout << "cache_alloc of 1000 K: " << s / test_cache_alloc1<list, 1000, LOOP_SIZE>() << "x    " << endl;
-        cout << "cache_alloc of 10000 K: " << s / test_cache_alloc1<list, 10000, LOOP_SIZE>() << "x    " << endl;
-        cout << "cache_alloc of 100000 K: " << s / test_cache_alloc1<list, 100000, LOOP_SIZE>() << "x    " << endl;
-    }
-
-    {
-        cout << "emplace_back / pop_back:    " << endl;
-        
-        auto s = test_new_delete2<list, LOOP_SIZE>();
-    
-        cout << "cache_alloc of 1 K: " << s / test_cache_alloc2<list, 1, LOOP_SIZE>() << "x    " << endl;
-        cout << "cache_alloc of 10 K: " << s / test_cache_alloc2<list, 10, LOOP_SIZE>() << "x    " << endl;
-        cout << "cache_alloc of 100 K: " << s / test_cache_alloc2<list, 100, LOOP_SIZE>() << "x    " << endl;
-        cout << "cache_alloc of 1000 K: " << s / test_cache_alloc2<list, 1000, LOOP_SIZE>() << "x    " << endl;
-        cout << "cache_alloc of 10000 K: " << s / test_cache_alloc2<list, 10000, LOOP_SIZE>() << "x    " << endl;
-        cout << "cache_alloc of 100000 K: " << s / test_cache_alloc2<list, 100000, LOOP_SIZE>() << "x    " << endl;
-    }
-            
     return 0;
 }
 

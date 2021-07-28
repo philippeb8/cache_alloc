@@ -1,6 +1,3 @@
-#ifndef CACHE_ALLOC_HPP
-#define CACHE_ALLOC_HPP
-
 /**
     Cache Alloc
 
@@ -12,8 +9,11 @@
 */
 
 
-#include <array>
+#ifndef CACHE_ALLOC_HPP
+#define CACHE_ALLOC_HPP
+
 #include <list>
+#include <array>
 #include "intrusive_list.hpp"
 
 #if BOOST_BENCHMARK
@@ -37,6 +37,13 @@ inline uint64_t rdtsc()
 #endif
 
 
+namespace fornux
+{
+
+template <typename T, typename A = std::allocator<T>>
+    using list = std::list<T, A>;
+    
+
 template <typename T, size_t S, template <typename...> class A = std::allocator> // type, cache size based on speed of pre-made benchmark and allocator
     struct cache_alloc
     {
@@ -55,7 +62,7 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
             
         T * allocate(size_t size) noexcept __attribute__((always_inline))
         {
-            typename std::list<cache_t, A<cache_t>>::iterator pcache = -- pool.caches.end();
+            typename fornux::list<cache_t, A<cache_t>>::iterator pcache = -- pool.caches.end();
             
             if (! pool.elements.empty())
             {
@@ -68,7 +75,7 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
                 element_t * const p = boost::smart_ptr::detail::classof(& element_t::node, i);
                     
                 i->erase();
-                p->pcache->size += 1;
+                p->pcache->size += size;
                     
                 return reinterpret_cast<T *>(& p->element);
             }
@@ -168,7 +175,7 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
         
         struct element_t
         {
-            typename std::list<cache_t, A<cache_t>>::iterator pcache;
+            typename fornux::list<cache_t, A<cache_t>>::iterator pcache;
             boost::smart_ptr::detail::intrusive_list_node node;
             typename std::aligned_storage<sizeof(T), alignof(T)>::type element;
         };
@@ -184,11 +191,13 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
         struct pool_t
         {
             boost::smart_ptr::detail::intrusive_list elements{};
-            std::list<cache_t, A<cache_t>> caches{1};
+            fornux::list<cache_t, A<cache_t>> caches{1};
         };
         
         pool_t pool; // general pool
     };
+
+}
 
 
 #endif
