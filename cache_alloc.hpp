@@ -101,6 +101,7 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
                 element_t * const p = & reinterpret_cast<data_t &>(pcache->data)[pcache->live_elements_size];
                 p->pcache = pcache;
                 p->pcache->live_elements_size += size;
+                new (& p->node) boost::smart_ptr::detail::intrusive_list_node();
                 //p->pcache->live_elements.push_back(& p->node);
             
                 return reinterpret_cast<T *>(& p->element);
@@ -194,7 +195,7 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
 
             cache_t()
             {
-                new (& data) data_t();
+                //new (& data) data_t();
             }
             
             ~cache_t()
