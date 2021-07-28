@@ -65,18 +65,16 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
         {
             typename fornux::list<cache_t, A<cache_t>>::iterator pcache = -- pool.caches.end();
             
-            if (! pool.dead_elements.empty())
+            if (! pcache->dead_elements.empty())
             {
 #ifdef BOOST_BENCHMARK
                 benchmark_t element(stats.element);
 #endif
                 
-                // reuse node
-                boost::smart_ptr::detail::intrusive_list_node * const i = pool.dead_elements.begin();
-                element_t * const p = boost::smart_ptr::detail::classof(& element_t::node, i);
+                // reuse pool_node
+                element_t * const p = boost::smart_ptr::detail::classof(& element_t::cache_node, pcache->dead_elements.begin());
                     
-                i->erase();
-                //p->pcache->live_elements.push_back(& p->node);
+                p->cache_node.erase();
                     
                 return reinterpret_cast<T *>(& p->element);
             }
@@ -89,7 +87,7 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
                 
                 // add a buffer
                 pool.caches.emplace_back();
-                
+
                 pcache = -- pool.caches.end();
             }
             
@@ -99,10 +97,10 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
 #endif
                 
                 element_t * const p = & reinterpret_cast<data_t &>(pcache->data)[pcache->live_elements_size];
+                
                 p->pcache = pcache;
                 p->pcache->live_elements_size += size;
-                new (& p->node) boost::smart_ptr::detail::intrusive_list_node();
-                //p->pcache->live_elements.push_back(& p->node);
+                new (& p->cache_node) boost::smart_ptr::detail::intrusive_list_node();
             
                 return reinterpret_cast<T *>(& p->element);
             }
@@ -116,12 +114,10 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
 #ifdef BOOST_BENCHMARK
                 benchmark_t element(stats.element);
 #endif
-                        
+                
+                // enlist this pool_node for eventual reuse
                 p->pcache->live_elements_size -= size;
-
-                // enlist this node for eventual reuse
-                p->node.erase();
-                pool.dead_elements.push_back(& p->node);
+                p->pcache->dead_elements.push_back(& p->cache_node);
             }
             
             if (pool.caches.size() > 1 && p->pcache->live_elements_size == 0)
@@ -130,7 +126,7 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
                 benchmark_t cache(stats.cache);
 #endif
                 
-                // remove a buffer
+                // remove a buffer                
                 pool.caches.erase(p->pcache);
             }
         }
@@ -179,8 +175,8 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
         
         struct element_t
         {
+            boost::smart_ptr::detail::intrusive_list_node cache_node;
             typename fornux::list<cache_t, A<cache_t>>::iterator pcache;
-            boost::smart_ptr::detail::intrusive_list_node node;
             typename std::aligned_storage<sizeof(T), alignof(T)>::type element;
         };
         
@@ -188,37 +184,15 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
         
         struct cache_t
         {
-            bool skip = false;
             size_t live_elements_size{};
-            //boost::smart_ptr::detail::intrusive_list live_elements{};
+            boost::smart_ptr::detail::intrusive_list dead_elements{};
             typename std::aligned_storage<sizeof(data_t), alignof(data_t)>::type data;
-
-            cache_t()
-            {
-                //new (& data) data_t();
-            }
-            
-            ~cache_t()
-            {
-                if (! skip)
-                    reinterpret_cast<data_t &>(data).~data_t();
-            }
         };
         
         struct pool_t
         {
             boost::smart_ptr::detail::intrusive_list dead_elements{};
             fornux::list<cache_t, A<cache_t>> caches{1};
-            
-            pool_t()
-            {
-                caches.begin()->skip = true;
-            }
-            
-            ~pool_t()
-            {
-                dead_elements.clear();
-            }
         };
         
         pool_t pool; // general pool

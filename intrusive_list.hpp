@@ -67,7 +67,7 @@ struct intrusive_list_node
 
 class intrusive_list_base
 {
-protected:
+public:
     intrusive_list_node impl;
 
 public:
@@ -117,6 +117,17 @@ public:
     }
     
     pointer end()
+    {
+        return & impl; 
+    }
+
+    pointer rbegin() 
+    { 
+        return impl.prev; 
+        
+    }
+    
+    pointer rend()
     {
         return & impl; 
     }

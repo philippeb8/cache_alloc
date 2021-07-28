@@ -82,7 +82,7 @@ template <>
 */
 
 template <typename T, typename U>
-    T * classof(U T::* q, U * p)
+    constexpr T * classof(U T::* q, U * p)
     {
         typedef typename remove_const<typename remove_volatile<U>::type>::type unqualified_type;
     
