@@ -191,7 +191,6 @@ template <typename T, size_t S, template <typename...> class A = std::allocator>
         
         struct pool_t
         {
-            boost::smart_ptr::detail::intrusive_list dead_elements{};
             fornux::list<cache_t, A<cache_t>> caches{1};
         };
         
